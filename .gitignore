@@ -3,6 +3,7 @@ test.py
 app/__pycache__/
 app/schemas/__pycache__/
 app/startup/__pycache__/
+app/router/__pycache__
 app/core/config/constants/__pycache__/
 app/utils/key_generator/__pycache__/
 app/utils/token_counter/__pycache__/
