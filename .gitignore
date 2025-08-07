@@ -1,5 +1,7 @@
 .idea/
 test.py
+.venv
+.env
 app/__pycache__/
 app/schemas/__pycache__/
 app/startup/__pycache__/

@@ -1,10 +1,14 @@
 from fastapi import FastAPI
 # Define startup
-from .startup import init_model
+from .startup import init_model, wait_for_vllm
 # Router
 from .router import chat_router
 # Components
 import time
+# Logger
+from loggers import SystemLogger
+import logging
+logging.getLogger("uvicorn.error").propagate = False
 
 # Tags
 tags_metadata = [
@@ -24,10 +28,13 @@ app.include_router(chat_router,
                    prefix = "/v1/chat",
                    tags = [tags_metadata[0].get("name")])
 
-
 @app.on_event("startup")
 async def startup_event():
     # Start
     start = time.perf_counter()
+    # Wait until vllm done
+    wait_for_vllm()
     # Init ml model
-    # await init_model()
+    await init_model()
+    end = time.perf_counter()
+    SystemLogger.info(f"Start service after :{round(end - start,1)}s")

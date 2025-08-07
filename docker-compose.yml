@@ -1,0 +1,48 @@
+version: "3.8"
+name: chat_engine
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.10.0 # v0.10.0 for smaller size
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all          # or change to 1, or list device_ids
+              capabilities: [gpu]
+              options:
+                runtime: nvidia
+    ports:
+      - "${VLLM_PORT:-8100}:8000"
+    volumes:
+      - vllm-cache:/root/.cache/huggingface/hub
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - DISABLE_UVICORN_PROPAGATION=true
+    command: >
+      --model ${MODEL_NAME} 
+      --max_model_len=8192
+      --max-num-seqs=16
+      --max-num-batched-tokens=2048
+      --api-key ${VLLM_API_KEY}
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DISABLE_UVICORN_PROPAGATION=true
+      - NUM_WORKERS=${NUM_WORKERS}
+    ports:
+      - "${FASTAPI_PORT:-8005}:8005"
+    depends_on:
+      - vllm
+    command: >
+      uvicorn app.app:app 
+      --host 0.0.0.0 
+      --port 8005
+      --workers ${NUM_WORKERS}
+
+volumes:
+  vllm-cache:
+    driver: local
