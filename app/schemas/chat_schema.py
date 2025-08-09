@@ -1,18 +1,15 @@
 from typing import Any, Dict
 from .common_schema import *
+from .base_chat_schema import ChatMessage
 
-class ChatMessageInput(BaseModel):
-    role: ChatRole
-    content: str
-
-class DataItem(ChatMessageInput):
+class DataItem(ChatMessage):
     id: Optional[str]
     name: Optional[str] = None
     content_parts: Optional[List[str]] = None
 
 class ChatCompletionPayload(BaseModel):
     model: str
-    messages: List[ChatMessageInput]
+    messages: List[ChatMessage]
     stream: Optional[bool] = False
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None

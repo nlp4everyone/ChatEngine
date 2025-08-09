@@ -1,8 +1,9 @@
 from typing import List, Optional, Literal
 from pydantic import BaseModel
+from .base_chat_schema import ChatMessage
 
 ResultObject = Literal["response","chat.completion","list"]
-ChatRole = Literal["system", "user", "assistant", "developer"]
+
 
 class PromptTokensDetails(BaseModel):
     cached_tokens: int = 0
@@ -21,14 +22,12 @@ class Usage(BaseModel):
     prompt_tokens_details: PromptTokensDetails = None
     completion_tokens_details: CompletionTokensDetails = None
 
-class ChatMessageInputResponse(BaseModel):
-    role: ChatRole = "user"
-    content: str = ""
+class ChatCompletionMessageResponse(ChatMessage):
     refusal: Optional[str] = None
     annotations: List = []
 
 class Choice(BaseModel):
     index: int = 0
-    message: ChatMessageInputResponse
+    message: ChatCompletionMessageResponse
     logprobs: Optional[dict] = None
     finish_reason: Optional[str] = "stop"
