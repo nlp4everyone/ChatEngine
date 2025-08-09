@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 # Define startup
-from .startup import init_model, wait_for_vllm
+from .startup import (init_model,
+                      wait_for_vllm,
+                      init_memory_client)
 # Router
 from .router import chat_router
 # Components
@@ -36,5 +38,7 @@ async def startup_event():
     wait_for_vllm()
     # Init ml model
     await init_model()
+    # Init memory cline
+    init_memory_client()
     end = time.perf_counter()
     SystemLogger.info(f"Start service after :{round(end - start,1)}s")

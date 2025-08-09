@@ -2,12 +2,19 @@ from fastapi import APIRouter
 # Schema
 from app.schemas.chat_schema import *
 from app.schemas.common_schema import *
+from app.schemas.base_chat_schema import ChatMessage
 # Other component
 from app.utils.key_generator import *
 from app.utils.token_counter import approximate_count_tokens
 # Config
-from app.core.config.constants import MODEL_NAME
+from app.core.config.constants import *
+# LLM
+from app.startup import get_model, get_memory_client
+# Langchain prompt
+from langchain_core.messages import HumanMessage
 import time
+# Logger
+from loggers import SystemLogger
 
 # Define router
 chat_router = APIRouter()
@@ -17,18 +24,23 @@ async def chat_completions(payload: ChatCompletionPayload):
     """
     Creates a model response for the given chat conversation.
     """
+    llm = get_model()
+    memory_client = get_memory_client()
+    # Completion id
+    completion_id = generate_chat_id()
+
     # Pseudo LLM generation
-    res = "Hello! How can I help you today?"
+    res = await llm.ainvoke([HumanMessage(content = payload.messages[0].content)])
     # Define choice
     choice = Choice(index = 0,
-                    message = ChatMessageInputResponse(role = "assistant",
-                                                       content = res))
+                    message = ChatCompletionMessageResponse(role = "assistant",
+                                                            content = res.content))
 
     # Define input messages
     input_messages = [message.model_dump() for message in payload.messages]
     # Define token count
     prompt_tokens = approximate_count_tokens(messages = input_messages)
-    completion_tokens = approximate_count_tokens(messages = res)
+    completion_tokens = approximate_count_tokens(messages = res.content)
     # Define usage
     usage = Usage(prompt_tokens = prompt_tokens,
                   completion_tokens = completion_tokens,
@@ -36,8 +48,17 @@ async def chat_completions(payload: ChatCompletionPayload):
                   prompt_tokens_details = PromptTokensDetails(),
                   completion_tokens_details = CompletionTokensDetails())
 
+    # Define session message (For storing)
+    session_messages = input_messages.copy()
+    session_messages.append(ChatMessage(role = "assistant",
+                                        content = res.content).model_dump())
+    # Add message to history
+    updated_status = await memory_client.add(messages = session_messages,
+                            user_id = completion_id,
+                            async_mode = True,
+                            version="v2")
     # Construct output
-    return ChatCompletionResponse(id = generate_chat_id(),
+    return ChatCompletionResponse(id = completion_id,
                                   created = int(time.time()),
                                   model = MODEL_NAME,
                                   choices = [choice],
@@ -50,8 +71,8 @@ async def get_chat_completions(completion_id: str):
     Get a stored chat completion.
     """
     # Pseudo LLM generation
-    input_messages = [ChatMessageInput(role = "user",
-                                       content = "Hello").model_dump()]
+    input_messages = [ChatMessage(role = "user",
+                                  content = "Hello").model_dump()]
     res = "Hello! How can I help you today?"
 
     # Define token count
